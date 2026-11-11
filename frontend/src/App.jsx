@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// Automatically use Render URL in production or fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://coffee-shop-app-4.onrender.com';
+
 function App() {
   const [view, setView] = useState('customer'); // 'customer' or 'staff'
   const [menu, setMenu] = useState([]);
@@ -26,25 +29,24 @@ function App() {
     contact: "+266 2222 3333"
   });
 
-  // Staff form state for adding new menu items
   const [newItem, setNewItem] = useState({ name: '', description: '', price: '', image: '' });
   const [orders, setOrders] = useState([]);
 
-  // Fetch store info, menu, & orders from Express backend
+  // Fetch store info, menu, & orders from Express backend using dynamic base URL
   const fetchData = () => {
-    fetch('http://localhost:5000/api/store-info')
+    fetch(`${API_BASE_URL}/api/store-info`)
       .then(res => res.json())
       .then(data => {
         if (data && !data.error) setStoreInfo(data);
       })
       .catch(err => console.error("Error fetching store info:", err));
 
-    fetch('http://localhost:5000/api/menu')
+    fetch(`${API_BASE_URL}/api/menu`)
       .then(res => res.json())
       .then(data => setMenu(data))
       .catch(err => console.error("Error fetching menu:", err));
 
-    fetch('http://localhost:5000/api/orders')
+    fetch(`${API_BASE_URL}/api/orders`)
       .then(res => res.json())
       .then(data => setOrders(data))
       .catch(err => console.error("Error fetching orders:", err));
@@ -59,7 +61,7 @@ function App() {
     if (!activeOrder || !activeOrder.id) return;
 
     const intervalId = setInterval(() => {
-      fetch(`http://localhost:5000/api/orders/${activeOrder.id}`)
+      fetch(`${API_BASE_URL}/api/orders/${activeOrder.id}`)
         .then(res => res.json())
         .then(updatedOrder => {
           if (updatedOrder && updatedOrder.status) {
@@ -70,7 +72,7 @@ function App() {
     }, 3000);
 
     return () => clearInterval(intervalId);
-  }, [activeOrder?.id]);
+  }, [activeOrder?.id, API_BASE_URL]);
 
   // --- CUSTOMER PORTAL LOGIC ---
   const addToCart = (item) => {
@@ -112,7 +114,7 @@ function App() {
       totalAmount: parseFloat(calculateTotal())
     };
 
-    fetch('http://localhost:5000/api/orders', {
+    fetch(`${API_BASE_URL}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderPayload)
@@ -150,7 +152,7 @@ function App() {
   // --- STAFF DASHBOARD LOGIC ---
   const handleAddMenuItem = (e) => {
     e.preventDefault();
-    fetch('http://localhost:5000/api/menu', {
+    fetch(`${API_BASE_URL}/api/menu`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newItem)
@@ -164,13 +166,13 @@ function App() {
   };
 
   const handleDeleteMenuItem = (id) => {
-    fetch(`http://localhost:5000/api/menu/${id}`, { method: 'DELETE' })
+    fetch(`${API_BASE_URL}/api/menu/${id}`, { method: 'DELETE' })
       .then(() => fetchData())
       .catch(err => console.error("Error deleting item:", err));
   };
 
   const handleUpdateStatus = (orderId, status) => {
-    fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+    fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
@@ -182,7 +184,7 @@ function App() {
   const handleClearExpiredOrders = () => {
     if (!window.confirm("Are you sure you want to delete uncollected orders older than 24 hours?")) return;
     
-    fetch('http://localhost:5000/api/orders/clear-expired', { method: 'DELETE' })
+    fetch(`${API_BASE_URL}/api/orders/clear-expired`, { method: 'DELETE' })
       .then(res => res.json())
       .then(data => {
         alert(data.message);
@@ -191,7 +193,6 @@ function App() {
       .catch(err => console.error("Error clearing expired orders:", err));
   };
 
-  // --- FILTER ORDERS BY TIME PERIOD ---
   const getFilteredOrders = () => {
     const now = new Date().getTime();
     const oneDayMs = 24 * 60 * 60 * 1000;
@@ -204,7 +205,7 @@ function App() {
       } else if (orderTimeFilter === '7days') {
         return (now - orderTime) <= sevenDaysMs;
       }
-      return true; // 'all'
+      return true;
     });
   };
 
@@ -241,7 +242,6 @@ function App() {
       {/* ================= CUSTOMER VIEW ================= */}
       {view === 'customer' && (
         <div>
-          {/* Attractive Coffee Shop Hero Banner */}
           <div style={{ 
             backgroundImage: 'linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url("https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80")',
             backgroundSize: 'cover',
@@ -290,7 +290,6 @@ function App() {
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
-            {/* Menu Items Catalog */}
             <div>
               <h2 style={{ color: '#4a2c2a', borderBottom: '2px solid #e0dcd0', paddingBottom: '8px' }}>Our Menu Catalog</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginTop: '15px' }}>
@@ -315,7 +314,6 @@ function App() {
               </div>
             </div>
 
-            {/* Shopping Cart Section */}
             <div>
               <div style={{ border: '1px solid #e0dcd0', borderRadius: '10px', backgroundColor: '#fff', padding: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.04)' }}>
                 <h2 style={{ color: '#4a2c2a', marginTop: 0, borderBottom: '2px solid #e0dcd0', paddingBottom: '8px' }}>🛒 Your Cart</h2>
@@ -365,7 +363,6 @@ function App() {
       {view === 'staff' && (
         <div>
           {!isStaffAuthenticated ? (
-            /* Staff Login Form */
             <div style={{ maxWidth: '400px', margin: '40px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '10px', border: '1px solid #e0e0e0', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', textAlign: 'center' }}>
               <h2>🔒 Staff Portal Login</h2>
               <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Please enter your staff password to access management tools.</p>
@@ -389,9 +386,7 @@ function App() {
               </form>
             </div>
           ) : (
-            /* Full Staff Dashboard Content */
             <div>
-              {/* Filter Controls & Clear Expired Button */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px', backgroundColor: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.04)' }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#555' }}>📅 Timeframe:</span>
@@ -413,9 +408,9 @@ function App() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={handleClearExpiredOrders}>
-  🧹 Clear Uncollected (&gt;24h)
-</button>
+                  <button onClick={handleClearExpiredOrders} style={{ padding: '8px 12px', backgroundColor: '#e67e22', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                    🧹 Clear Uncollected (&gt;24h)
+                  </button>
                   <button 
                     onClick={handleStaffLogout}
                     style={{ backgroundColor: '#7f8c8d', color: '#fff', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
@@ -424,7 +419,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Summary Metric Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
                 <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #e0e0e0', boxShadow: '0 2px 5px rgba(0,0,0,0.04)' }}>
                   <h4 style={{ margin: '0 0 10px 0', color: '#666' }}>Orders ({orderTimeFilter})</h4>
@@ -437,7 +431,6 @@ function App() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
-                {/* Add Menu Item Panel */}
                 <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #e0e0e0', height: 'fit-content' }}>
                   <h2>➕ Add New Menu Item</h2>
                   <form onSubmit={handleAddMenuItem}>
@@ -473,7 +466,6 @@ function App() {
                   </ul>
                 </div>
 
-                {/* Customer Orders Tracking Table & Receipt Generator */}
                 <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #e0e0e0' }}>
                   <h2>📋 Order Management & History</h2>
                   {filteredOrders.length === 0 ? (
@@ -584,7 +576,7 @@ function App() {
               </button>
               <button 
                 onClick={() => setSelectedOrderForSlip(null)}
-                style={{ flex: 1, backgroundColor: '#7f8c8d', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
+                style={{ flex: 1, backgroundColor: '#c0392b', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
                 Close
               </button>
             </div>
